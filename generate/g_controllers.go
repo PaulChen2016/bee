@@ -195,9 +195,9 @@ func (c *{{controllerName}}Controller) Post() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 	if _, err := models.Add{{controllerName}}(&v); err == nil {
 		c.Ctx.Output.SetStatus(201)
-		c.Data["json"] = v
+		c.Data["json"] = common.RestfulResult{Code: 0, Msg: v}
 	} else {
-		c.Data["json"] = err.Error()
+		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
 	}
 	c.ServeJSON()
 }
@@ -214,9 +214,9 @@ func (c *{{controllerName}}Controller) GetOne() {
 	id, _ := strconv.ParseInt(idStr, 0, 64)
 	v, err := models.Get{{controllerName}}ById(id)
 	if err != nil {
-		c.Data["json"] = err.Error()
+		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
 	} else {
-		c.Data["json"] = v
+		c.Data["json"] = common.RestfulResult{Code: 0, Msg: v}
 	}
 	c.ServeJSON()
 }
@@ -275,11 +275,17 @@ func (c *{{controllerName}}Controller) GetAll() {
 		}
 	}
 
-	l, err := models.GetAll{{controllerName}}(query, fields, sortby, order, offset, limit)
+	l, count, err := models.GetAll{{controllerName}}(query, fields, sortby, order, offset, limit)
 	if err != nil {
-		c.Data["json"] = err.Error()
+		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
 	} else {
-		c.Data["json"] = l
+		c.Data["json"] = common.RestfulResult{Code: 0, Msg: struct {
+			Items interface{}
+			Total int64
+		}{
+			Items: l,
+			Total: count,
+		}}
 	}
 	c.ServeJSON()
 }
@@ -298,9 +304,9 @@ func (c *{{controllerName}}Controller) Put() {
 	v := models.{{controllerName}}{Id: id}
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 	if err := models.Update{{controllerName}}ById(&v); err == nil {
-		c.Data["json"] = "OK"
+		c.Data["json"] = common.RestfulResult{Code: 0, Msg: "OK"}
 	} else {
-		c.Data["json"] = err.Error()
+		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
 	}
 	c.ServeJSON()
 }
@@ -316,10 +322,39 @@ func (c *{{controllerName}}Controller) Delete() {
 	idStr := c.Ctx.Input.Param(":id")
 	id, _ := strconv.ParseInt(idStr, 0, 64)
 	if err := models.Delete{{controllerName}}(id); err == nil {
-		c.Data["json"] = "OK"
+		c.Data["json"] = common.RestfulResult{Code: 0, Msg: "OK"}
 	} else {
-		c.Data["json"] = err.Error()
+		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
 	}
+	c.ServeJSON()
+}
+
+
+// Delete{{controllerName}}s ...
+// @Title multi-Delete
+// @Description delete multi {{controllerName}}s
+// @Param	ids	 	string	true		"The ids you want to delete"
+// @Success 200 {string} delete success!
+// @Failure 403 id is empty
+// @router /delete{{controllerName}}s [delete]
+func (c *{{controllerName}}Controller) Delete{{controllerName}}s() {
+	// fields: col1,col2,entity.col3
+	var idslice []string
+	// fmt.Println("idsniit:", c.GetString("ids"))
+	if v := c.GetString("ids"); v != "" {
+		idslice = strings.Split(v, ",")
+	}
+	// fmt.Println(idslice)
+	for _, idStr := range idslice {
+		idInt64, _ := strconv.ParseInt(idStr, 0, 64)
+		if err := securityModels.Delete{{controllerName}}(idInt64); err != nil {
+			c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+			logs.Error(err.Error())
+			c.ServeJSON()
+			c.StopRun()
+		}
+	}
+	c.Data["json"] = common.RestfulResult{Code: 0, Msg: ""}
 	c.ServeJSON()
 }
 `
