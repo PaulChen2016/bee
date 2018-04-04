@@ -411,14 +411,16 @@ const (
 {{modelStruct}}
 `
 
-	HproseModelTPL = `package models
+	HproseModelTPL = `
+	package {{packageName}}
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
-	"strings"
+	"strconv"
 	{{timePkg}}
+	"github.com/PaulChen2016/common"
+	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -438,10 +440,10 @@ func Add{{modelName}}(m *{{modelName}}) (id int64, err error) {
 
 // Get{{modelName}}ById retrieves {{modelName}} by Id. Returns error if
 // Id doesn't exist
-func Get{{modelName}}ById(id int) (v *{{modelName}}, err error) {
+func Get{{modelName}}ById(id int64) (v *{{modelName}}, err error) {
 	o := orm.NewOrm()
 	v = &{{modelName}}{Id: id}
-	if err = o.Read(v); err == nil {
+	if err = o.QueryTable(new({{modelName}})).Filter("Id", id).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -449,15 +451,63 @@ func Get{{modelName}}ById(id int) (v *{{modelName}}, err error) {
 
 // GetAll{{modelName}} retrieves all {{modelName}} matches certain condition. Returns empty list if
 // no records exist
-func GetAll{{modelName}}(query map[string]string, fields []string, sortby []string, order []string,
-	offset int64, limit int64) (ml []interface{}, err error) {
+func GetAll{{modelName}}(querys []*common.QueryConditon, fields []string, sortby []string, order []string,
+	offset int64, limit int64) (ml []interface{}, totalcount int64, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new({{modelName}}))
-	// query k=v
-	for k, v := range query {
-		// rewrite dot-notation to Object__Attribute
-		k = strings.Replace(k, ".", "__", -1)
-		qs = qs.Filter(k, v)
+	// query QueryCondition
+	cond := orm.NewCondition()
+	for _, query := range querys {
+		var k string
+		cond1 := orm.NewCondition()
+		switch query.QueryType {
+		case common.MultiSelect:
+			k = query.QueryKey // + "__iexact"
+			for _, v := range query.QueryValues {
+				cond1 = cond1.Or(k, v)
+			}
+			cond = cond.AndCond(cond1)
+		case common.MultiText:
+			k = query.QueryKey + "__icontains"
+			for _, v := range query.QueryValues {
+				cond1 = cond1.Or(k, v)
+			}
+			cond = cond.AndCond(cond1)
+		case common.NumRange:
+			if len(query.QueryValues) == 2 {
+				var from, to float64
+				if from, err = strconv.ParseFloat(query.QueryValues[0], 64); err != nil {
+					logs.Error(err.Error())
+					return
+				}
+				if to, err = strconv.ParseFloat(query.QueryValues[1], 64); err != nil {
+					logs.Error(err.Error())
+					return
+				}
+				k = query.QueryKey + "__gte"
+				cond1 = cond1.Or(k, from)
+				k = query.QueryKey + "__lte"
+				cond1 = cond1.And(k, to)
+				cond = cond.AndCond(cond1)
+			} else {
+				k = query.QueryKey + "__icontains"
+				for _, v := range query.QueryValues {
+					cond1 = cond1.Or(k, v)
+				}
+				cond = cond.AndCond(cond1)
+			}
+		default:
+			k = query.QueryKey + "__icontains"
+			for _, v := range query.QueryValues {
+				cond1 = cond1.Or(k, v)
+			}
+			cond = cond.AndCond(cond1)
+		}
+	}
+	qs = qs.SetCond(cond)
+	//获取查询条件过滤的总记录数
+	if totalcount, err = qs.Count(); err != nil {
+		return
 	}
 	// order by:
 	var sortFields []string
@@ -471,7 +521,7 @@ func GetAll{{modelName}}(query map[string]string, fields []string, sortby []stri
 				} else if order[i] == "asc" {
 					orderby = v
 				} else {
-					return nil, errors.New("Error: Invalid order. Must be either [asc|desc]")
+					return nil, 0, errors.New("Error: Invalid order. Must be either [asc|desc]")
 				}
 				sortFields = append(sortFields, orderby)
 			}
@@ -485,21 +535,21 @@ func GetAll{{modelName}}(query map[string]string, fields []string, sortby []stri
 				} else if order[0] == "asc" {
 					orderby = v
 				} else {
-					return nil, errors.New("Error: Invalid order. Must be either [asc|desc]")
+					return nil, 0, errors.New("Error: Invalid order. Must be either [asc|desc]")
 				}
 				sortFields = append(sortFields, orderby)
 			}
 		} else if len(sortby) != len(order) && len(order) != 1 {
-			return nil, errors.New("Error: 'sortby', 'order' sizes mismatch or 'order' size is not 1")
+			return nil, 0, errors.New("Error: 'sortby', 'order' sizes mismatch or 'order' size is not 1")
 		}
 	} else {
 		if len(order) != 0 {
-			return nil, errors.New("Error: unused 'order' fields")
+			return nil, 0, errors.New("Error: unused 'order' fields")
 		}
 	}
 
 	var l []{{modelName}}
-	qs = qs.OrderBy(sortFields...)
+	qs = qs.OrderBy(sortFields...).RelatedSel()
 	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
 		if len(fields) == 0 {
 			for _, v := range l {
@@ -516,9 +566,9 @@ func GetAll{{modelName}}(query map[string]string, fields []string, sortby []stri
 				ml = append(ml, m)
 			}
 		}
-		return ml, nil
+		return ml, totalcount, nil
 	}
-	return nil, err
+	return nil, 0, err
 }
 
 // Update{{modelName}} updates {{modelName}} by Id and returns error if
@@ -530,7 +580,7 @@ func Update{{modelName}}ById(m *{{modelName}}) (err error) {
 	if err = o.Read(&v); err == nil {
 		var num int64
 		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+			logs.Debug("Number of {{modelName}} update in database:", num)
 		}
 	}
 	return
@@ -538,15 +588,26 @@ func Update{{modelName}}ById(m *{{modelName}}) (err error) {
 
 // Delete{{modelName}} deletes {{modelName}} by Id and returns error if
 // the record to be deleted doesn't exist
-func Delete{{modelName}}(id int) (err error) {
+func Delete{{modelName}}(id int64) (err error) {
 	o := orm.NewOrm()
 	v := {{modelName}}{Id: id}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
 		if num, err = o.Delete(&{{modelName}}{Id: id}); err == nil {
-			fmt.Println("Number of records deleted in database:", num)
+			logs.Debug("Number of {{modelName}} deleted in database:", num)
 		}
+	}
+	return
+}
+
+// Mult-deletes {modelName}} by Id slice and returns error if
+// the delete not success
+func MultDeleteByIDs(ids []interface{}) (err error) {
+	o := orm.NewOrm()
+	if num, err := o.QueryTable(new({modelName}})).Filter("id__in", ids...).Delete(); err == nil {
+		logs.Debug("delete {modelName}} from database, num:", num)
+		return nil
 	}
 	return
 }
