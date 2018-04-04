@@ -141,9 +141,7 @@ var modelTpl = `package {{packageName}}
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
-	"strings"
 	{{timePkg}}
 	"github.com/astaxie/beego/orm"
 )
