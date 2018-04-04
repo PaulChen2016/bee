@@ -20,9 +20,9 @@ import (
 	"path"
 	"strings"
 
-	beeLogger "github.com/beego/bee/logger"
-	"github.com/beego/bee/logger/colors"
-	"github.com/beego/bee/utils"
+	beeLogger "github.com/PaulChen2016/bee/logger"
+	"github.com/PaulChen2016/bee/logger/colors"
+	"github.com/PaulChen2016/bee/utils"
 )
 
 func GenerateController(cname, currpath string) {
@@ -403,7 +403,7 @@ func (c *{{controllerName}}Controller) Import() {
 }
 
 //import 具体方法
-func import{controllerName}}(fpath string) (err error) {
+func import{{controllerName}}(fpath string) (err error) {
 	var xlFile *xlsx.File
 	xlFile, err = xlsx.OpenFile(fpath)
 	for _, sheet := range xlFile.Sheets {
@@ -413,7 +413,7 @@ func import{controllerName}}(fpath string) (err error) {
 		}
 		headRow := sheet.Rows[1]
 		for _, row := range sheet.Rows[2:] {
-			m := models.{controllerName}}{}
+			m := models.{{controllerName}}{}
 			s := reflect.ValueOf(&m).Elem()
 			for col, cell := range row.Cells {
 				// v, _ := cell.String()
@@ -448,19 +448,19 @@ func import{controllerName}}(fpath string) (err error) {
 					// 	return err
 					// }
 				default:
-					err = fmt.Errorf("Unkown {controllerName}} attr type: %s", field)
+					err = fmt.Errorf("Unkown {{controllerName}} attr type: %s", field)
 					logs.Error(err.Error())
 					return err
 				}
 				if err != nil {
-					logs.Error("parse cell value failed when import {controllerName}}s,", err.Error())
+					logs.Error("parse cell value failed when import {{controllerName}}s,", err.Error())
 					return err
 				}
 				refvalue := reflect.ValueOf(v)
 				s.FieldByName(attr).Set(refvalue)
 			}
-			if _, err = models.Add{controllerName}}(&m); err != nil {
-				logs.Error("models.Add{controllerName}} failed,", err.Error())
+			if _, err = models.Add{{controllerName}}(&m); err != nil {
+				logs.Error("models.Add{{controllerName}} failed,", err.Error())
 				return err
 			}
 		}

@@ -21,9 +21,9 @@ import (
 	"path"
 	"strings"
 
-	beeLogger "github.com/beego/bee/logger"
-	"github.com/beego/bee/logger/colors"
-	"github.com/beego/bee/utils"
+	beeLogger "github.com/PaulChen2016/bee/logger"
+	"github.com/PaulChen2016/bee/logger/colors"
+	"github.com/PaulChen2016/bee/utils"
 )
 
 func GenerateModel(mname, fields, currpath string) {
@@ -326,12 +326,12 @@ func Delete{{modelName}}(id int64) (err error) {
 	return
 }
 
-// Mult-deletes {modelName}} by Id slice and returns error if
+// Mult-deletes {{modelName}} by Id slice and returns error if
 // the delete not success
 func MultDeleteByIDs(ids []interface{}) (err error) {
 	o := orm.NewOrm()
-	if num, err := o.QueryTable(new({modelName}})).Filter("id__in", ids...).Delete(); err == nil {
-		logs.Debug("delete {modelName}} from database, num:", num)
+	if num, err := o.QueryTable(new({{modelName}})).Filter("id__in", ids...).Delete(); err == nil {
+		logs.Debug("delete {{modelName}} from database, num:", num)
 		return nil
 	}
 	return

@@ -4,7 +4,7 @@ bee
 
 Bee is a command-line tool facilitating development of Beego-based application.
 
-[![Build Status](https://drone.io/github.com/beego/bee/status.png)](https://drone.io/github.com/beego/bee/latest)
+[![Build Status](https://drone.io/github.com/PaulChen2016/bee/status.png)](https://drone.io/github.com/PaulChen2016/bee/latest)
 
 ## Requirements
 
@@ -15,7 +15,7 @@ Bee is a command-line tool facilitating development of Beego-based application.
 To install `bee` use the `go get` command:
 
 ```bash
-go get github.com/beego/bee
+go get github.com/PaulChen2016/bee
 ```
 
 Then you can add `bee` binary to PATH environment variable in your `~/.bashrc` or `~/.bash_profile` file:
@@ -27,7 +27,7 @@ export PATH=$PATH:<your_main_gopath>/bin
 > If you already have `bee` installed, updating `bee` is simple:
 
 ```bash
-go get -u github.com/beego/bee
+go get -u github.com/PaulChen2016/bee
 ```
 
 ## Basic commands

@@ -16,22 +16,22 @@
 package cmd
 
 import (
-	"github.com/beego/bee/cmd/commands"
-	_ "github.com/beego/bee/cmd/commands/api"
-	_ "github.com/beego/bee/cmd/commands/bale"
-	_ "github.com/beego/bee/cmd/commands/beefix"
-	_ "github.com/beego/bee/cmd/commands/dlv"
-	_ "github.com/beego/bee/cmd/commands/dockerize"
-	_ "github.com/beego/bee/cmd/commands/generate"
-	_ "github.com/beego/bee/cmd/commands/hprose"
-	_ "github.com/beego/bee/cmd/commands/migrate"
-	_ "github.com/beego/bee/cmd/commands/new"
-	_ "github.com/beego/bee/cmd/commands/pack"
-	_ "github.com/beego/bee/cmd/commands/rs"
-	_ "github.com/beego/bee/cmd/commands/run"
-	_ "github.com/beego/bee/cmd/commands/server"
-	_ "github.com/beego/bee/cmd/commands/version"
-	"github.com/beego/bee/utils"
+	"github.com/PaulChen2016/bee/cmd/commands"
+	_ "github.com/PaulChen2016/bee/cmd/commands/api"
+	_ "github.com/PaulChen2016/bee/cmd/commands/bale"
+	_ "github.com/PaulChen2016/bee/cmd/commands/beefix"
+	_ "github.com/PaulChen2016/bee/cmd/commands/dlv"
+	_ "github.com/PaulChen2016/bee/cmd/commands/dockerize"
+	_ "github.com/PaulChen2016/bee/cmd/commands/generate"
+	_ "github.com/PaulChen2016/bee/cmd/commands/hprose"
+	_ "github.com/PaulChen2016/bee/cmd/commands/migrate"
+	_ "github.com/PaulChen2016/bee/cmd/commands/new"
+	_ "github.com/PaulChen2016/bee/cmd/commands/pack"
+	_ "github.com/PaulChen2016/bee/cmd/commands/rs"
+	_ "github.com/PaulChen2016/bee/cmd/commands/run"
+	_ "github.com/PaulChen2016/bee/cmd/commands/server"
+	_ "github.com/PaulChen2016/bee/cmd/commands/version"
+	"github.com/PaulChen2016/bee/utils"
 )
 
 func IfGenerateDocs(name string, args []string) bool {
