@@ -163,15 +163,22 @@ import (
 	"{{pkgPath}}/models"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/astaxie/beego"
+	"github.com/PaulChen2016/common"
+	"github.com/astaxie/beego/logs"
+	"github.com/tealeg/xlsx"
 )
 
-//  {{controllerName}}Controller operations for {{controllerName}}
+// {{controllerName}}Controller operations for {{controllerName}}
 type {{controllerName}}Controller struct {
-	beego.Controller
+	common.BaseController
 }
 
 // URLMapping ...
@@ -181,6 +188,8 @@ func (c *{{controllerName}}Controller) URLMapping() {
 	c.Mapping("GetAll", c.GetAll)
 	c.Mapping("Put", c.Put)
 	c.Mapping("Delete", c.Delete)
+	c.Mapping("DeleteList", c.DeleteList)
+	c.Mapping("Import", c.Import)
 }
 
 // Post ...
@@ -237,7 +246,7 @@ func (c *{{controllerName}}Controller) GetAll() {
 	var fields []string
 	var sortby []string
 	var order []string
-	var query = make(map[string]string)
+	var query []*common.QueryConditon
 	var limit int64 = 10
 	var offset int64
 
@@ -261,20 +270,34 @@ func (c *{{controllerName}}Controller) GetAll() {
 	if v := c.GetString("order"); v != "" {
 		order = strings.Split(v, ",")
 	}
-	// query: k:v,k:v
+	// query: k|type:v|v|v,k|type:v|v|v  其中Type可以没有,默认值是 MultiText
 	if v := c.GetString("query"); v != "" {
-		for _, cond := range strings.Split(v, ",") {
+		for _, cond := range strings.Split(v, ",") { // 分割多个查询key
+			qcondtion := new(common.QueryConditon)
 			kv := strings.SplitN(cond, ":", 2)
 			if len(kv) != 2 {
-				c.Data["json"] = errors.New("Error: invalid query key/value pair")
+				c.Data["json"] = errors.New("Error: invalid query key:value pair," + cond)
 				c.ServeJSON()
 				return
 			}
-			k, v := kv[0], kv[1]
-			query[k] = v
+			k_init, v_init := kv[0], kv[1]         // 初始分割查询key和value（备注，value是多个用|分割）
+			key_type := strings.Split(k_init, "|") // 解析key中的type信息
+			if len(key_type) == 2 {
+				qcondtion.QueryKey = key_type[0]
+				qcondtion.QueryType = key_type[1]
+			} else if len(key_type) == 1 {
+				qcondtion.QueryKey = key_type[0]
+				qcondtion.QueryType = common.MultiText
+			} else {
+				c.Data["json"] = errors.New("Error: invalid query key|type format," + k_init)
+				c.ServeJSON()
+				return
+			}
+			qcondtion.QueryValues = strings.Split(v_init, "|") // 解析出values信息
+			qcondtion.QueryKey = strings.Replace(qcondtion.QueryKey, ".", "__", -1)
+			query = append(query, qcondtion)
 		}
 	}
-
 	l, count, err := models.GetAll{{controllerName}}(query, fields, sortby, order, offset, limit)
 	if err != nil {
 		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
@@ -330,31 +353,118 @@ func (c *{{controllerName}}Controller) Delete() {
 }
 
 
-// Delete{{controllerName}}s ...
+// DeleteList ...
 // @Title multi-Delete
 // @Description delete multi {{controllerName}}s
 // @Param	ids	 	string	true		"The ids you want to delete"
 // @Success 200 {string} delete success!
 // @Failure 403 id is empty
-// @router /delete{{controllerName}}s [delete]
-func (c *{{controllerName}}Controller) Delete{{controllerName}}s() {
+// @router /deletelist [delete]
+func (c *{{controllerName}}Controller) DeleteList() {
 	// fields: col1,col2,entity.col3
-	var idslice []string
-	// fmt.Println("idsniit:", c.GetString("ids"))
+	idslice := []interface{}{}
 	if v := c.GetString("ids"); v != "" {
-		idslice = strings.Split(v, ",")
-	}
-	// fmt.Println(idslice)
-	for _, idStr := range idslice {
-		idInt64, _ := strconv.ParseInt(idStr, 0, 64)
-		if err := securityModels.Delete{{controllerName}}(idInt64); err != nil {
-			c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
-			logs.Error(err.Error())
-			c.ServeJSON()
-			c.StopRun()
+		s := strings.Split(v, ",")
+		for _, id := range s {
+			idslice = append(idslice, id)
 		}
 	}
-	c.Data["json"] = common.RestfulResult{Code: 0, Msg: ""}
+	if err := models.MultDeleteByIDs(idslice); err != nil {
+		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+	} else {
+		c.Data["json"] = common.RestfulResult{Code: 0, Msg: "OK"}
+	}
 	c.ServeJSON()
+}
+
+
+// Import ...
+// @Title 批量导入 {{controllerName}}
+// @Description import {{controllerName}}
+// @Param   excel file
+// @Success 200 {object} import success!
+// @Failure 403 file context is incorrect
+// @router /import [post]
+func (c *{{controllerName}}Controller) Import() {
+	var err error
+	fpath := filepath.Join(common.GetUploadPath(), "{{controllerName}}"+time.Now().Format("2006-01-02-15-04-05")+".xlsx")
+	err = c.SaveToFile("file", fpath)
+	if err != nil {
+		logs.Error("Upload {{controllerName}} excel file err,", err.Error())
+	}
+	if err = import{{controllerName}}(fpath); err == nil {
+		c.Data["json"] = common.RestfulResult{Code: 0, Msg: ""}
+		//删除上传文件
+		os.Remove(fpath)
+	} else {
+		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+	}
+	c.ServeJSON()
+}
+
+//import 具体方法
+func import{controllerName}}(fpath string) (err error) {
+	var xlFile *xlsx.File
+	xlFile, err = xlsx.OpenFile(fpath)
+	for _, sheet := range xlFile.Sheets {
+		if len(sheet.Rows) <= 2 {
+			logs.Info("sheet context is null of import file,", fpath, sheet.Name)
+			continue
+		}
+		headRow := sheet.Rows[1]
+		for _, row := range sheet.Rows[2:] {
+			m := models.{controllerName}}{}
+			s := reflect.ValueOf(&m).Elem()
+			for col, cell := range row.Cells {
+				// v, _ := cell.String()
+				var v interface{}
+				attr, _ := headRow.Cells[col].String()
+				if !s.FieldByName(attr).IsValid() { //不识别的属性，继续
+					logs.Warning("unknow attr:", attr)
+					continue
+				}
+				field := s.FieldByName(attr).Type().Kind()
+				switch field {
+				case reflect.Float64:
+					v, err = cell.Float()
+				case reflect.String:
+					v, err = cell.String()
+				case reflect.Int:
+					v, err = cell.Int()
+				case reflect.Bool:
+					v = cell.Bool()
+				case reflect.Int64:
+					v, err = cell.Int64()
+				case reflect.Ptr:
+					// switch attr {
+					// case "BetaUser":
+					// 	var accountID string
+					// 	if accountID, err = cell.String(); err == nil {
+					// 		v, err = models.GetBetaUserByAccountID(accountID)
+					// 	}
+					// default:
+					// 	err = fmt.Errorf("Unkown BetaUserScore ptr attr type: %s", attr)
+					// 	logs.Error(err.Error())
+					// 	return err
+					// }
+				default:
+					err = fmt.Errorf("Unkown {controllerName}} attr type: %s", field)
+					logs.Error(err.Error())
+					return err
+				}
+				if err != nil {
+					logs.Error("parse cell value failed when import {controllerName}}s,", err.Error())
+					return err
+				}
+				refvalue := reflect.ValueOf(v)
+				s.FieldByName(attr).Set(refvalue)
+			}
+			if _, err = models.Add{controllerName}}(&m); err != nil {
+				logs.Error("models.Add{controllerName}} failed,", err.Error())
+				return err
+			}
+		}
+	}
+	return
 }
 `

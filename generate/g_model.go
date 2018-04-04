@@ -142,7 +142,10 @@ var modelTpl = `package {{packageName}}
 import (
 	"errors"
 	"reflect"
+	"strconv"
 	{{timePkg}}
+	"github.com/PaulChen2016/common"
+	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -173,17 +176,60 @@ func Get{{modelName}}ById(id int64) (v *{{modelName}}, err error) {
 
 // GetAll{{modelName}} retrieves all {{modelName}} matches certain condition. Returns empty list if
 // no records exist
-func GetAll{{modelName}}(query map[string]string, fields []string, sortby []string, order []string,
+func GetAll{{modelName}}(querys []*common.QueryConditon, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, totalcount int64, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new({{modelName}}))
-	// query k=v
-	for k, v := range query {
-		// rewrite dot-notation to Object__Attribute
-		k = k + ".icontains" //取包含，不是相等
-		k = strings.Replace(k, ".", "__", -1)
-		qs = qs.Filter(k, v)
+	// query QueryCondition
+	cond := orm.NewCondition()
+	for _, query := range querys {
+		var k string
+		cond1 := orm.NewCondition()
+		switch query.QueryType {
+		case common.MultiSelect:
+			k = query.QueryKey // + "__iexact"
+			for _, v := range query.QueryValues {
+				cond1 = cond1.Or(k, v)
+			}
+			cond = cond.AndCond(cond1)
+		case common.MultiText:
+			k = query.QueryKey + "__icontains"
+			for _, v := range query.QueryValues {
+				cond1 = cond1.Or(k, v)
+			}
+			cond = cond.AndCond(cond1)
+		case common.NumRange:
+			if len(query.QueryValues) == 2 {
+				var from, to float64
+				if from, err = strconv.ParseFloat(query.QueryValues[0], 64); err != nil {
+					logs.Error(err.Error())
+					return
+				}
+				if to, err = strconv.ParseFloat(query.QueryValues[1], 64); err != nil {
+					logs.Error(err.Error())
+					return
+				}
+				k = query.QueryKey + "__gte"
+				cond1 = cond1.Or(k, from)
+				k = query.QueryKey + "__lte"
+				cond1 = cond1.And(k, to)
+				cond = cond.AndCond(cond1)
+			} else {
+				k = query.QueryKey + "__icontains"
+				for _, v := range query.QueryValues {
+					cond1 = cond1.Or(k, v)
+				}
+				cond = cond.AndCond(cond1)
+			}
+		default:
+			k = query.QueryKey + "__icontains"
+			for _, v := range query.QueryValues {
+				cond1 = cond1.Or(k, v)
+			}
+			cond = cond.AndCond(cond1)
+		}
 	}
+	qs = qs.SetCond(cond)
 	//获取查询条件过滤的总记录数
 	if totalcount, err = qs.Count(); err != nil {
 		return
@@ -259,7 +305,7 @@ func Update{{modelName}}ById(m *{{modelName}}) (err error) {
 	if err = o.Read(&v); err == nil {
 		var num int64
 		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+			logs.Debug("Number of {{modelName}} update in database:", num)
 		}
 	}
 	return
@@ -274,8 +320,19 @@ func Delete{{modelName}}(id int64) (err error) {
 	if err = o.Read(&v); err == nil {
 		var num int64
 		if num, err = o.Delete(&{{modelName}}{Id: id}); err == nil {
-			fmt.Println("Number of records deleted in database:", num)
+			logs.Debug("Number of {{modelName}} deleted in database:", num)
 		}
+	}
+	return
+}
+
+// Mult-deletes {modelName}} by Id slice and returns error if
+// the delete not success
+func MultDeleteByIDs(ids []interface{}) (err error) {
+	o := orm.NewOrm()
+	if num, err := o.QueryTable(new({modelName}})).Filter("id__in", ids...).Delete(); err == nil {
+		logs.Debug("delete {modelName}} from database, num:", num)
+		return nil
 	}
 	return
 }
