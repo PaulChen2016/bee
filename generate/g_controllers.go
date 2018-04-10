@@ -369,7 +369,7 @@ func (c *{{controllerName}}Controller) DeleteList() {
 			idslice = append(idslice, id)
 		}
 	}
-	if err := models.MultDeleteByIDs(idslice); err != nil {
+	if err := models.MultDelete{{controllerName}}ByIDs(idslice); err != nil {
 		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
 	} else {
 		c.Data["json"] = common.RestfulResult{Code: 0, Msg: "OK"}

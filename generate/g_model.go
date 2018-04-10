@@ -328,7 +328,7 @@ func Delete{{modelName}}(id int64) (err error) {
 
 // Mult-deletes {{modelName}} by Id slice and returns error if
 // the delete not success
-func MultDeleteByIDs(ids []interface{}) (err error) {
+func MultDelete{{modelName}}ByIDs(ids []interface{}) (err error) {
 	o := orm.NewOrm()
 	if num, err := o.QueryTable(new({{modelName}})).Filter("id__in", ids...).Delete(); err == nil {
 		logs.Debug("delete {{modelName}} from database, num:", num)
