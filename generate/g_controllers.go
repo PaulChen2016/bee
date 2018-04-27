@@ -381,7 +381,7 @@ func (c *{{controllerName}}Controller) DeleteList() {
 // Import ...
 // @Title 批量导入 {{controllerName}}
 // @Description import {{controllerName}}
-// @Param   excel file
+// @Param data list in excel file
 // @Success 200 {object} import success!
 // @Failure 403 file context is incorrect
 // @router /import [post]
