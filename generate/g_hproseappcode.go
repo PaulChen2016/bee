@@ -419,7 +419,7 @@ import (
 	"reflect"
 	"strconv"
 	{{timePkg}}
-	"github.com/PaulChen2016/common"
+	"github.com/PaulChen2016/tools/curd/common"
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 )

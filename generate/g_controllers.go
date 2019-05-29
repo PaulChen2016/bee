@@ -171,7 +171,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PaulChen2016/common"
+	"github.com/PaulChen2016/tools/curd/common"
 	"github.com/astaxie/beego/logs"
 	"github.com/tealeg/xlsx"
 )
@@ -204,9 +204,9 @@ func (c *{{controllerName}}Controller) Post() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 	if _, err := models.Add{{controllerName}}(&v); err == nil {
 		c.Ctx.Output.SetStatus(201)
-		c.Data["json"] = common.RestfulResult{Code: 0, Msg: v}
+		c.Data["json"] = common.RestResult{Code: 0, Data: v}
 	} else {
-		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
 	}
 	c.ServeJSON()
 }
@@ -223,9 +223,9 @@ func (c *{{controllerName}}Controller) GetOne() {
 	id, _ := strconv.ParseInt(idStr, 0, 64)
 	v, err := models.Get{{controllerName}}ById(id)
 	if err != nil {
-		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
 	} else {
-		c.Data["json"] = common.RestfulResult{Code: 0, Msg: v}
+		c.Data["json"] = common.RestResult{Code: 0, Data: v}
 	}
 	c.ServeJSON()
 }
@@ -300,9 +300,9 @@ func (c *{{controllerName}}Controller) GetAll() {
 	}
 	l, count, err := models.GetAll{{controllerName}}(query, fields, sortby, order, offset, limit)
 	if err != nil {
-		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
 	} else {
-		c.Data["json"] = common.RestfulResult{Code: 0, Msg: struct {
+		c.Data["json"] = common.RestResult{Code: 0, Data: struct {
 			Items interface{}
 			Total int64
 		}{
@@ -327,9 +327,9 @@ func (c *{{controllerName}}Controller) Put() {
 	v := models.{{controllerName}}{Id: id}
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 	if err := models.Update{{controllerName}}ById(&v); err == nil {
-		c.Data["json"] = common.RestfulResult{Code: 0, Msg: "OK"}
+		c.Data["json"] = common.RestResult{Code: 0, Message: "OK"}
 	} else {
-		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
 	}
 	c.ServeJSON()
 }
@@ -345,9 +345,9 @@ func (c *{{controllerName}}Controller) Delete() {
 	idStr := c.Ctx.Input.Param(":id")
 	id, _ := strconv.ParseInt(idStr, 0, 64)
 	if err := models.Delete{{controllerName}}(id); err == nil {
-		c.Data["json"] = common.RestfulResult{Code: 0, Msg: "OK"}
+		c.Data["json"] = common.RestResult{Code: 0, Message: "OK"}
 	} else {
-		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
 	}
 	c.ServeJSON()
 }
@@ -370,9 +370,9 @@ func (c *{{controllerName}}Controller) DeleteList() {
 		}
 	}
 	if err := models.MultDelete{{controllerName}}ByIDs(idslice); err != nil {
-		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
 	} else {
-		c.Data["json"] = common.RestfulResult{Code: 0, Msg: "OK"}
+		c.Data["json"] = common.RestResult{Code: 0, Message: "OK"}
 	}
 	c.ServeJSON()
 }
@@ -393,11 +393,11 @@ func (c *{{controllerName}}Controller) Import() {
 		logs.Error("Upload {{controllerName}} excel file err,", err.Error())
 	}
 	if err = import{{controllerName}}(fpath); err == nil {
-		c.Data["json"] = common.RestfulResult{Code: 0, Msg: ""}
+		c.Data["json"] = common.RestResult{Code: 0, Message: ""}
 		//删除上传文件
 		os.Remove(fpath)
 	} else {
-		c.Data["json"] = common.RestfulResult{Code: -1, Msg: err.Error()}
+		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
 	}
 	c.ServeJSON()
 }
