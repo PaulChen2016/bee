@@ -418,7 +418,7 @@ func import{{controllerName}}(fpath string) (err error) {
 			for col, cell := range row.Cells {
 				// v, _ := cell.String()
 				var v interface{}
-				attr, _ := headRow.Cells[col].String()
+				attr := headRow.Cells[col].String()
 				if !s.FieldByName(attr).IsValid() { //不识别的属性，继续
 					logs.Warning("unknow attr:", attr)
 					continue
@@ -428,7 +428,7 @@ func import{{controllerName}}(fpath string) (err error) {
 				case reflect.Float64:
 					v, err = cell.Float()
 				case reflect.String:
-					v, err = cell.String()
+					v = cell.String()
 				case reflect.Int:
 					v, err = cell.Int()
 				case reflect.Bool:
