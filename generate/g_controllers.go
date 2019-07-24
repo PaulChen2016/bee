@@ -322,11 +322,18 @@ func (c *{{controllerName}}Controller) GetAll() {
 // @Failure 403 :id is not int
 // @router /:id [put]
 func (c *{{controllerName}}Controller) Put() {
+	// 指定更新字段
+	var fields []string
+	// fields: col1,col2,entity.col3
+	if v := c.GetString("fields"); v != "" {
+		fields = strings.Split(v, ",")
+	}
+
 	idStr := c.Ctx.Input.Param(":id")
 	id, _ := strconv.ParseInt(idStr, 0, 64)
 	v := models.{{controllerName}}{Id: id}
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
-	if err := models.Update{{controllerName}}ById(&v); err == nil {
+	if err := models.Update{{controllerName}}ById(&v, fields); err == nil {
 		c.Data["json"] = common.RestResult{Code: 0, Message: "OK"}
 	} else {
 		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
