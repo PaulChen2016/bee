@@ -221,7 +221,7 @@ func (c *{{controllerName}}Controller) Post() {
 func (c *{{controllerName}}Controller) GetOne() {
 	idStr := c.Ctx.Input.Param(":id")
 	id, _ := strconv.ParseInt(idStr, 0, 64)
-	v, err := models.Get{{controllerName}}ById(id)
+	v, err := models.Get{{controllerName}}ByID(id)
 	if err != nil {
 		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}
 	} else {
@@ -280,20 +280,20 @@ func (c *{{controllerName}}Controller) GetAll() {
 				c.ServeJSON()
 				return
 			}
-			k_init, v_init := kv[0], kv[1]         // 初始分割查询key和value（备注，value是多个用|分割）
-			key_type := strings.Split(k_init, "|") // 解析key中的type信息
-			if len(key_type) == 2 {
-				qcondtion.QueryKey = key_type[0]
-				qcondtion.QueryType = key_type[1]
-			} else if len(key_type) == 1 {
-				qcondtion.QueryKey = key_type[0]
+			kInit, vInit := kv[0], kv[1]         // 初始分割查询key和value（备注，value是多个用|分割）
+			keyType := strings.Split(kInit, "|") // 解析key中的type信息
+			if len(keyType) == 2 {
+				qcondtion.QueryKey = keyType[0]
+				qcondtion.QueryType = keyType[1]
+			} else if len(keyType) == 1 {
+				qcondtion.QueryKey = keyType[0]
 				qcondtion.QueryType = common.MultiText
 			} else {
-				c.Data["json"] = errors.New("Error: invalid query key|type format," + k_init)
+				c.Data["json"] = errors.New("Error: invalid query key|type format," + kInit)
 				c.ServeJSON()
 				return
 			}
-			qcondtion.QueryValues = strings.Split(v_init, "|") // 解析出values信息
+			qcondtion.QueryValues = strings.Split(vInit, "|") // 解析出values信息
 			qcondtion.QueryKey = strings.Replace(qcondtion.QueryKey, ".", "__", -1)
 			query = append(query, qcondtion)
 		}
@@ -331,9 +331,9 @@ func (c *{{controllerName}}Controller) Put() {
 
 	idStr := c.Ctx.Input.Param(":id")
 	id, _ := strconv.ParseInt(idStr, 0, 64)
-	v := models.{{controllerName}}{Id: id}
+	v := models.{{controllerName}}{ID: id}
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
-	if err := models.Update{{controllerName}}ById(&v, fields); err == nil {
+	if err := models.Update{{controllerName}}ByID(&v, fields); err == nil {
 		c.Data["json"] = common.RestResult{Code: 0, Message: "OK"}
 	} else {
 		c.Data["json"] = common.RestResult{Code: -1, Message: err.Error()}

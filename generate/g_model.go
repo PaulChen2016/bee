@@ -93,7 +93,7 @@ func getStruct(structname, fields string) (string, bool, error) {
 		}
 
 		if i == 0 && strings.ToLower(kv[0]) != "id" {
-			structStr = structStr + "Id     int64     `orm:\"auto\"`\n"
+			structStr = structStr + "ID     int64     `orm:\"auto\"`\n"
 		}
 
 		if hastimeinner {
@@ -149,6 +149,7 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
+// {{modelName}} ...
 {{modelStruct}}
 
 func init() {
@@ -156,19 +157,19 @@ func init() {
 }
 
 // Add{{modelName}} insert a new {{modelName}} into database and returns
-// last inserted Id on success.
+// last inserted ID on success.
 func Add{{modelName}}(m *{{modelName}}) (id int64, err error) {
 	o := orm.NewOrm()
 	id, err = o.Insert(m)
 	return
 }
 
-// Get{{modelName}}ById retrieves {{modelName}} by Id. Returns error if
-// Id doesn't exist
-func Get{{modelName}}ById(id int64) (v *{{modelName}}, err error) {
+// Get{{modelName}}ByID retrieves {{modelName}} by ID. Returns error if
+// ID doesn't exist
+func Get{{modelName}}ByID(id int64) (v *{{modelName}}, err error) {
 	o := orm.NewOrm()
-	v = &{{modelName}}{Id: id}
-	if err = o.QueryTable(new({{modelName}})).Filter("Id", id).RelatedSel().One(v); err == nil {
+	v = &{{modelName}}{ID: id}
+	if err = o.QueryTable(new({{modelName}})).Filter("ID", id).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -296,11 +297,11 @@ func GetAll{{modelName}}(querys []*common.QueryConditon, fields []string, sortby
 	return nil, 0, err
 }
 
-// Update{{modelName}} updates {{modelName}} by Id and returns error if
+// Update{{modelName}}ByID and returns error if
 // the record to be updated doesn't exist
-func Update{{modelName}}ById(m *{{modelName}}, fields []string) (err error) {
+func Update{{modelName}}ByID(m *{{modelName}}, fields []string) (err error) {
 	o := orm.NewOrm()
-	v := {{modelName}}{Id: m.Id}
+	v := {{modelName}}{ID: m.ID}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
@@ -311,22 +312,22 @@ func Update{{modelName}}ById(m *{{modelName}}, fields []string) (err error) {
 	return
 }
 
-// Delete{{modelName}} deletes {{modelName}} by Id and returns error if
+// Delete{{modelName}} deletes {{modelName}} by ID and returns error if
 // the record to be deleted doesn't exist
 func Delete{{modelName}}(id int64) (err error) {
 	o := orm.NewOrm()
-	v := {{modelName}}{Id: id}
+	v := {{modelName}}{ID: id}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
-		if num, err = o.Delete(&{{modelName}}{Id: id}); err == nil {
+		if num, err = o.Delete(&{{modelName}}{ID: id}); err == nil {
 			logs.Debug("Number of {{modelName}} deleted in database:", num)
 		}
 	}
 	return
 }
 
-// Mult-deletes {{modelName}} by Id slice and returns error if
+// MultDelete{{modelName}}ByIDs and returns error if
 // the delete not success
 func MultDelete{{modelName}}ByIDs(ids []interface{}) (err error) {
 	o := orm.NewOrm()
